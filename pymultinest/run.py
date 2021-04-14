@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals, print_function
 from ctypes import cdll
-from ctypes.util import find_library 
+from ctypes.util import find_library
 import sys, os, threading
 
 def _load_library(libname):
@@ -13,7 +13,7 @@ def _load_library(libname):
 	try:
 		if sys.platform == 'darwin':
 			libname = find_library(libname)
-		return cdll.LoadLibrary(libname)
+		return cdll.LoadLibrary("/usr/local/lib/" + libname)
 	except OSError as e:
 		message = str(e)
 		if message == '%s: cannot open shared object file: No such file or directory' % libname:
@@ -71,59 +71,59 @@ def interrupt_handler(recvsignal, frame):
 
 def run(LogLikelihood,
 	Prior,
-	n_dims, 
-	n_params = None, 
-	n_clustering_params = None, wrapped_params = None, 
+	n_dims,
+	n_params = None,
+	n_clustering_params = None, wrapped_params = None,
 	importance_nested_sampling = True,
 	multimodal = True, const_efficiency_mode = False, n_live_points = 400,
-	evidence_tolerance = 0.5, sampling_efficiency = 0.8, 
+	evidence_tolerance = 0.5, sampling_efficiency = 0.8,
 	n_iter_before_update = 100, null_log_evidence = -1e90,
 	max_modes = 100, mode_tolerance = -1e90,
 	outputfiles_basename = "chains/1-", seed = -1, verbose = False,
-	resume = True, context = 0, write_output = True, log_zero = -1e100, 
+	resume = True, context = 0, write_output = True, log_zero = -1e100,
 	max_iter = 0, init_MPI = False, dump_callback = None, use_MPI = True):
 	"""
 	Runs MultiNest
-	
-	The most important parameters are the two log-probability functions Prior 
+
+	The most important parameters are the two log-probability functions Prior
 	and LogLikelihood. They are called by MultiNest.
-	
+
 	Prior should transform the unit cube into the parameter cube. Here
 	is an example for a uniform prior::
-	
+
 		def Prior(cube, ndim, nparams):
 			for i in range(ndim):
 				cube[i] = cube[i] * 10 * math.pi
-	
+
 	The LogLikelihood function gets this parameter cube and should
 	return the logarithm of the likelihood.
 	Here is the example for the eggbox problem::
-	
+
 		def Loglike(cube, ndim, nparams, lnew):
 			chi = 1.
-			
+
 			for i in range(ndim):
 				chi *= math.cos(cube[i] / 2.)
 			return math.pow(2. + chi, 5)
-	
-	Some of the parameters are explained below. Otherwise consult the 
+
+	Some of the parameters are explained below. Otherwise consult the
 	MultiNest documentation.
-	
+
 	@param importance_nested_sampling:
 		If True, Multinest will use Importance Nested Sampling (INS). Read http://arxiv.org/abs/1306.2144
 		for more details on INS. Please read the MultiNest README file before using the INS in MultiNest v3.0.
-	
-	@param n_params: 
-		Total no. of parameters, should be equal to ndims in most cases 
+
+	@param n_params:
+		Total no. of parameters, should be equal to ndims in most cases
 		but if you need to store some additional
-		parameters with the actual parameters then you need to pass 
+		parameters with the actual parameters then you need to pass
 		them through the likelihood routine.
 
 	@param sampling_efficiency:
-		defines the sampling efficiency. 0.8 and 0.3 are recommended 
+		defines the sampling efficiency. 0.8 and 0.3 are recommended
 		for parameter estimation & evidence evalutation
 		respectively.
-		use 'parameter' or 'model' to select the respective default 
+		use 'parameter' or 'model' to select the respective default
 		values
 
 	@param mode_tolerance:
@@ -136,45 +136,45 @@ def run(LogLikelihood,
 		A value of 0.5 should give good enough accuracy.
 
 	@param n_clustering_params:
-		If mmodal is T, MultiNest will attempt to separate out the 
+		If mmodal is T, MultiNest will attempt to separate out the
 		modes. Mode separation is done through a clustering
-		algorithm. Mode separation can be done on all the parameters 
+		algorithm. Mode separation can be done on all the parameters
 		(in which case nCdims should be set to ndims) & it
-		can also be done on a subset of parameters (in which case 
+		can also be done on a subset of parameters (in which case
 		nCdims < ndims) which might be advantageous as
-		clustering is less accurate as the dimensionality increases. 
+		clustering is less accurate as the dimensionality increases.
 		If nCdims < ndims then mode separation is done on
 		the first nCdims parameters.
 
 	@param null_log_evidence:
-		If mmodal is T, MultiNest can find multiple modes & also specify 
+		If mmodal is T, MultiNest can find multiple modes & also specify
 		which samples belong to which mode. It might be
-		desirable to have separate samples & mode statistics for modes 
+		desirable to have separate samples & mode statistics for modes
 		with local log-evidence value greater than a
-		particular value in which case nullZ should be set to that 
+		particular value in which case nullZ should be set to that
 		value. If there isn't any particulrly interesting
-		nullZ value, then nullZ should be set to a very large negative 
+		nullZ value, then nullZ should be set to a very large negative
 		number (e.g. -1.d90).
-		
+
 	@param init_MPI:
 		initialize MPI routines?, relevant only if compiling with MPI
 		To run pymultinest with MPI, you need mpi4py installed. Then,
 		the libmultinest_mpi library is loaded when you run with mpiexec
 		or similar. init_MPI should be set to False, because importing
 		mpi4py initialises MPI already.
-	
-	@param log_zero: 
+
+	@param log_zero:
 		points with loglike < logZero will be ignored by MultiNest
-	
-	@param max_iter: 
+
+	@param max_iter:
 		maximum number of iterations. 0 is unlimited.
-	
+
 	@param write_output:
 		write output files? This is required for analysis.
-		
+
 	@param dump_callback:
 		a callback function for dumping the current status
-	
+
 	@param use_MPI:
 		if True (default), if run with mpiexec and mpi4py installed, use multinest MPI library.
 		if False, use only a single processor.
@@ -186,10 +186,10 @@ def run(LogLikelihood,
 		n_clustering_params = n_dims
 	if wrapped_params == None:
 		wrapped_params = [0] * n_dims
-	
+
 	WrappedType = c_int * len(wrapped_params)
 	wraps = WrappedType(*wrapped_params)
-	
+
 	if sampling_efficiency == 'parameter':
 		sampling_efficiency = 0.8
 	if sampling_efficiency == 'model':
@@ -205,14 +205,14 @@ def run(LogLikelihood,
 	# check if threads are involved
 	# in that case we can't use the signal handler
 	is_thread = threading.active_count() > 1
-	
+
 	# check if lnew is supported by user function
 	nargs = 3
 	try:
 		nargs = len(inspect.getargspec(LogLikelihood).args) - inspect.ismethod(LogLikelihood)
 	except:
 		pass
-	
+
 	if nargs == 4:
 		def loglike(cube, ndim, nparams, lnew, nullcontext):
 			if Prior:
@@ -223,7 +223,7 @@ def run(LogLikelihood,
 			if Prior:
 				Prior(cube, ndim, nparams)
 			return LogLikelihood(cube, ndim, nparams)
-	
+
 	def dumper(nSamples,nlive,nPar,
 			   physLive,posterior,paramConstr,
 			   maxLogLike,logZ,logZerr,nullcontext):
@@ -232,15 +232,15 @@ def run(LogLikelihood,
 			# syntax is... but this should pass back the right numpy arrays,
 			# without copies. Untested!
 			pc =  as_array(paramConstr,shape=(nPar,4))
-			
+
 			dump_callback(nSamples,nlive,nPar,
 				as_array(physLive,shape=(nPar+1,nlive)).T,
-				as_array(posterior,shape=(nPar+2,nSamples)).T, 
+				as_array(posterior,shape=(nPar+2,nSamples)).T,
 				(pc[:,0],pc[:,1],pc[:,2],pc[:,3]), # (mean,std,bestfit,map)
 				maxLogLike,logZ,logZerr, 0)
 	if not is_thread:
 		prev_handler = signal.signal(signal.SIGINT, interrupt_handler)
-	
+
 	# to avoid garbage collection of these ctypes, which leads to NULLs
 	# we need to make local copies here that are not thrown away
 	s = outputfiles_basename.encode()
@@ -256,18 +256,18 @@ def run(LogLikelihood,
 		# or filename truncation if not using the latest MultiNest version)
 		sb = create_string_buffer(s, 1000)
 
-	argtypes = [c_bool, c_bool, c_bool, 
-		c_int, c_double, c_double, 
-		c_int, c_int, c_int, c_int, 
-		c_int, c_double, 
-		lambda x: x, c_int, lambda x: x, 
-		c_bool, c_bool, c_bool, c_bool, 
+	argtypes = [c_bool, c_bool, c_bool,
+		c_int, c_double, c_double,
+		c_int, c_int, c_int, c_int,
+		c_int, c_double,
+		lambda x: x, c_int, lambda x: x,
+		c_bool, c_bool, c_bool, c_bool,
 		c_double, c_int, loglike_type, dumper_type, c_int
 		]
 	args = [importance_nested_sampling, multimodal, const_efficiency_mode,
-		n_live_points, evidence_tolerance, sampling_efficiency, 
-		n_dims, n_params, n_clustering_params, max_modes, 
-		n_iter_before_update, mode_tolerance, 
+		n_live_points, evidence_tolerance, sampling_efficiency,
+		n_dims, n_params, n_clustering_params, max_modes,
+		n_iter_before_update, mode_tolerance,
 		sb, seed, wraps,
 		verbose, resume, write_output, init_MPI,
 		log_zero, max_iter, loglike, dumper, context]
@@ -287,11 +287,11 @@ def run(LogLikelihood,
 def _is_newer(filea, fileb):
 	 return os.stat(filea).st_mtime > os.stat(fileb).st_mtime
 def multinest_complete(outputfiles_basename = "chains/1-"):
-	""" 
+	"""
 	Checks the output files of multinest to see if they are complete.
 	This also requires the presence of params.json, which your code should
 	write after calling run()
-	
+
 	returns True or False
 	"""
 	names = ['stats.dat', 'post_equal_weights.dat', '.txt', 'resume.dat', 'params.json']
